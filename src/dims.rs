@@ -11,8 +11,7 @@ use crate::reader::SisHeader;
 /// Largest chunk side; a chunk holds one channel of one z-plane at one time point.
 const CHUNK_SIZE: u64 = 1024;
 
-/// A scope's image dimensions. There is a `t` axis only when the scope has more than one
-/// time point, so single-time images keep axes c, z, y, x.
+/// A scope's image dimensions: always t, c, z, y, x, even with a single time point.
 pub(crate) struct Dims<'a> {
     header: &'a SisHeader,
 }
@@ -22,15 +21,6 @@ impl<'a> Dims<'a> {
         Self { header }
     }
 
-    /// `rest`, with `t` in front when the image has a time axis.
-    fn with_t<T>(&self, t: T, rest: Vec<T>) -> Vec<T> {
-        if self.header.size_t > 1 {
-            std::iter::once(t).chain(rest).collect()
-        } else {
-            rest
-        }
-    }
-
     /// NGFF axes, in array order.
     pub(crate) fn axes(&self) -> Vec<Axis> {
         let space = |name: &str| Axis {
@@ -38,59 +28,54 @@ impl<'a> Dims<'a> {
             r#type: Some(AxisType::Space),
             unit: Some(AxisUnit::Space(AxisUnitSpace::Micrometer)),
         };
-        self.with_t(
+        vec![
             // The file's tick spacing is not confirmed, so time is in steps, not seconds.
             Axis {
                 name: "t".into(),
                 r#type: Some(AxisType::Time),
                 unit: None,
             },
-            vec![
-                Axis {
-                    name: "c".into(),
-                    r#type: Some(AxisType::Channel),
-                    unit: None,
-                },
-                space("z"),
-                space("y"),
-                space("x"),
-            ],
-        )
+            Axis {
+                name: "c".into(),
+                r#type: Some(AxisType::Channel),
+                unit: None,
+            },
+            space("z"),
+            space("y"),
+            space("x"),
+        ]
     }
 
     /// Axis names, in array order.
     pub(crate) fn names(&self) -> Vec<&'static str> {
-        self.with_t("t", vec!["c", "z", "y", "x"])
+        vec!["t", "c", "z", "y", "x"]
     }
 
     /// Array shape of resolution `level`.
     pub(crate) fn shape(&self, level: usize) -> Vec<u64> {
         let h = self.header;
         let (w, hgt) = h.grid.level_size(level);
-        self.with_t(h.size_t, vec![h.channels.len() as u64, h.size_z, hgt, w])
+        vec![h.size_t, h.channels.len() as u64, h.size_z, hgt, w]
     }
 
-    /// Chunk shape of resolution `level`: one channel of one z-plane, at most
-    /// `CHUNK_SIZE` on a side.
+    /// Chunk shape of resolution `level`: one channel of one z-plane at one time point, at
+    /// most `CHUNK_SIZE` on a side.
     pub(crate) fn chunks(&self, level: usize) -> Vec<u64> {
         let (w, hgt) = self.header.grid.level_size(level);
-        self.with_t(1, vec![1, 1, hgt.min(CHUNK_SIZE), w.min(CHUNK_SIZE)])
+        vec![1, 1, 1, hgt.min(CHUNK_SIZE), w.min(CHUNK_SIZE)]
     }
 
     /// The region of resolution `level` that channel-plane (t, z, c) fills.
     pub(crate) fn plane(&self, level: usize, t: u64, z: u64, c: u64) -> Vec<Range<u64>> {
         let (w, hgt) = self.header.grid.level_size(level);
-        self.with_t(t..t + 1, vec![c..c + 1, z..z + 1, 0..hgt, 0..w])
+        vec![t..t + 1, c..c + 1, z..z + 1, 0..hgt, 0..w]
     }
 
     /// NGFF scale of resolution `level`, one entry per axis.
     pub(crate) fn scale(&self, level: usize) -> Vec<f32> {
         let [px, py, pz] = self.header.pixel_size;
         let step = (1u64 << level) as f64;
-        self.with_t(
-            1.0,
-            vec![1.0, pz as f32, (py * step) as f32, (px * step) as f32],
-        )
+        vec![1.0, 1.0, pz as f32, (py * step) as f32, (px * step) as f32]
     }
 
     /// Every channel-plane (t, z, c).
@@ -128,19 +113,19 @@ mod tests {
     }
 
     #[test]
-    fn single_time_image_has_axes_czyx() {
+    fn single_time_image_keeps_a_t_axis() {
         let h = header(1, 5);
         let d = Dims::new(&h);
-        assert_eq!(d.names(), ["c", "z", "y", "x"]);
-        assert_eq!(d.shape(0), [2, 3, 3, 5]);
-        assert_eq!(d.shape(1), [2, 3, 2, 3]);
-        assert_eq!(d.chunks(0), [1, 1, 3, 5]);
-        assert_eq!(d.scale(1), [1.0, 2.0, 0.5, 1.0]);
-        assert_eq!(d.plane(1, 0, 2, 1), [1..2, 2..3, 0..2, 0..3]);
+        assert_eq!(d.names(), ["t", "c", "z", "y", "x"]);
+        assert_eq!(d.shape(0), [1, 2, 3, 3, 5]);
+        assert_eq!(d.shape(1), [1, 2, 3, 2, 3]);
+        assert_eq!(d.chunks(0), [1, 1, 1, 3, 5]);
+        assert_eq!(d.scale(1), [1.0, 1.0, 2.0, 0.5, 1.0]);
+        assert_eq!(d.plane(1, 0, 2, 1), [0..1, 1..2, 2..3, 0..2, 0..3]);
     }
 
     #[test]
-    fn time_series_puts_t_first() {
+    fn time_series_has_t_first() {
         let h = header(4, 5);
         let d = Dims::new(&h);
         assert_eq!(d.names(), ["t", "c", "z", "y", "x"]);
