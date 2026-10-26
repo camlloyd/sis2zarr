@@ -260,7 +260,7 @@ fn ome_xml_image(i: usize, header: &SisHeader) -> String {
         })
         .collect::<String>();
     format!(
-        r#"<Image ID="Image:{i}" Name="{name}"><Pixels ID="Pixels:{i}" DimensionOrder="XYZCT" Type="{pixel_type}" SizeX="{w}" SizeY="{h}" SizeZ="{z}" SizeC="{c}" SizeT="{t}" PhysicalSizeX="{px}" PhysicalSizeXUnit="µm" PhysicalSizeY="{py}" PhysicalSizeYUnit="µm" PhysicalSizeZ="{pz}" PhysicalSizeZUnit="µm">{channels}<MetadataOnly/></Pixels></Image>"#,
+        r#"<Image ID="Image:{i}" Name="{name}"><Pixels ID="Pixels:{i}" DimensionOrder="XYZCT" Type="{pixel_type}" BigEndian="false" SizeX="{w}" SizeY="{h}" SizeZ="{z}" SizeC="{c}" SizeT="{t}" PhysicalSizeX="{px}" PhysicalSizeXUnit="µm" PhysicalSizeY="{py}" PhysicalSizeYUnit="µm" PhysicalSizeZ="{pz}" PhysicalSizeZUnit="µm">{channels}<MetadataOnly/></Pixels></Image>"#,
         w = header.grid.width(),
         h = header.grid.height(),
         z = header.size_z,

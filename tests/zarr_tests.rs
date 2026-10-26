@@ -132,6 +132,7 @@ fn ome_xml_records_type_sizes_and_physical_sizes() {
     let xml = std::fs::read_to_string(out.join("OME/METADATA.ome.xml")).unwrap();
     for attr in [
         r#"Type="uint16""#,
+        r#"BigEndian="false""#,
         r#"SizeX="5""#,
         r#"SizeY="3""#,
         r#"SizeZ="2""#,
