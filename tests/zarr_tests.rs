@@ -29,7 +29,7 @@ fn assert_level<T: ElementOwned + From<u8> + PartialEq + std::fmt::Debug>(
     (w, h): (u64, u64),
 ) {
     let (shape, px) = read_level::<T>(out, 0, level);
-    assert_eq!(shape, [2, 2, h, w]);
+    assert_eq!(shape, [1, 2, 2, h, w]);
     assert_eq!(px, expected::<T>(w, h));
 }
 
@@ -94,8 +94,8 @@ fn datasets_scale_xy_by_two_per_level() {
     let (_dir, out) = convert(&sis_file());
     let datasets = &read_json(&out.join("0/.zattrs"))["multiscales"][0]["datasets"];
     let scale = |level: usize| &datasets[level]["coordinateTransformations"][0]["scale"];
-    assert_eq!(scale(0), &json!([1.0, 2.0, 0.25, 0.5]));
-    assert_eq!(scale(1), &json!([1.0, 2.0, 0.5, 1.0]));
+    assert_eq!(scale(0), &json!([1.0, 1.0, 2.0, 0.25, 0.5]));
+    assert_eq!(scale(1), &json!([1.0, 1.0, 2.0, 0.5, 1.0]));
 }
 
 #[test]
@@ -176,7 +176,7 @@ fn each_scope_is_its_own_image_group() {
     let (_dir, out) = convert(&multi_scope_sis_file(2));
     for scope in 0..2 {
         let (shape, px) = read_level::<u16>(&out, scope, 0);
-        assert_eq!(shape, [2, 2, 3, 5]);
+        assert_eq!(shape, [1, 2, 2, 3, 5]);
         let expected: Vec<u16> = (0..2)
             .flat_map(|c| (0..2).map(move |z| (z, c)))
             .flat_map(|(z, c)| (0..15).map(move |_| scope_value(scope, z, c) as u16))
