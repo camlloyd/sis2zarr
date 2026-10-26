@@ -1,0 +1,31 @@
+[package]
+name = "sis2zarr"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.87"
+description = "Convert arivis SIS (.sis) files to OME-Zarr"
+documentation = "https://docs.rs/sis2zarr"
+readme = "README.md"
+homepage = "https://github.com/camlloyd/sis2zarr"
+repository = "https://github.com/camlloyd/sis2zarr"
+license = "MIT OR Apache-2.0"
+keywords = ["microscopy", "zarr", "arivis", "cli"]
+categories = ["science", "encoding", "parser-implementations", "command-line-utilities"]
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+flate2 = { version = "1", default-features = false, features = ["zlib-rs"] }
+memmap2 = "0.9"
+ome_zarr_metadata = "0.3"
+rayon = "1"
+roxmltree = "0.20"
+serde_json = "1"
+thiserror = "2"
+zarrs = { version = "0.22", default-features = false, features = ["blosc", "filesystem"] }
+# 0.3.13+ fsyncs every chunk file; on macOS that is a full disk flush per chunk and
+# leaves the worker threads mostly blocked. A converter can simply be rerun.
+zarrs_filesystem = "=0.3.12"
+
+[dev-dependencies]
+tempfile = "3"

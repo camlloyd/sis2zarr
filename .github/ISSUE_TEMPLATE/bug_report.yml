@@ -1,0 +1,43 @@
+name: Bug report
+description: Create a report to help us improve
+title: "[Bug]: "
+labels: []
+assignees: []
+body:
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have checked that the [latest version](https://github.com/camlloyd/sis2zarr/releases/latest) does not solve this issue.
+          required: true
+        - label: I have checked the [issues](https://github.com/camlloyd/sis2zarr/issues) for similar issues.
+          required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe the bug...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        sis2zarr <ARGS>
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        - sis2zarr version: (e.g. sis2zarr 0.1.0)
+        - arivis version that created the file: (e.g. arivis Vision4D 3.4, arivis Pro 4.1)
+        - SIS version: (the `SISVersion = …` line near the start of the .sis file, e.g. 3.4)
+        - OS and version: (e.g. Windows 11 25H2, macOS Sequoia 15.7.4, Ubuntu 24.04.4 LTS)
+    validations:
+      required: true
