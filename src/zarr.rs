@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ome_zarr_metadata::v0_4::{
     Channel, Color, CoordinateTransform, CoordinateTransformScale, MultiscaleImage,
@@ -27,11 +28,19 @@ fn zarr_err<E: std::fmt::Display>(e: E) -> SisError {
 
 /// Write every scope as OME-Zarr v0.4 in the `bioformats2raw` layout: image groups `0`,
 /// `1`, … in scope order, and `OME/METADATA.ome.xml` with one `Image` per group.
-pub(crate) fn write_ome_zarr(output: &Path, scopes: &[Scope<'_>]) -> Result<(), SisError> {
+/// Calls `progress(done, total)` after each channel-plane is written, counting across scopes.
+pub(crate) fn write_ome_zarr(
+    output: &Path,
+    scopes: &[Scope<'_>],
+    progress: &(dyn Fn(usize, usize) + Sync),
+) -> Result<(), SisError> {
     let store = Arc::new(FilesystemStore::new(output).map_err(zarr_err)?);
     let name = output.file_name().unwrap_or_default().to_string_lossy();
+    let total = scopes.iter().map(|s| s.header().plane_count()).sum();
+    let done = AtomicUsize::new(0);
+    let tick = || progress(done.fetch_add(1, Ordering::Relaxed) + 1, total);
     for (i, scope) in scopes.iter().enumerate() {
-        write_image(&store, &format!("/{i}"), scope, &name)?;
+        write_image(&store, &format!("/{i}"), scope, &name, &tick)?;
     }
 
     let series: Vec<String> = (0..scopes.len()).map(|i| i.to_string()).collect();
@@ -64,6 +73,7 @@ fn write_image(
     path: &str,
     scope: &Scope<'_>,
     name: &str,
+    tick: &(dyn Fn() + Sync),
 ) -> Result<(), SisError> {
     let header = scope.header();
     let dims = Dims::new(header);
@@ -126,6 +136,7 @@ fn write_image(
                     Plane::F32(px) => store_level(array, &subset, px, range),
                 }?;
             }
+            tick();
             Ok((c, range))
         })
         .collect::<Result<Vec<_>, SisError>>()?;
