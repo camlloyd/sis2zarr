@@ -17,8 +17,11 @@ const MAGIC: &[u8] = b"#Single Image Stack\n";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum PixelType {
+    /// 8-bit unsigned (`unsigned char` in the header).
     U8,
+    /// 16-bit unsigned (`unsigned short` in the header).
     U16,
+    /// 32-bit float (`float` in the header).
     F32,
 }
 
@@ -62,8 +65,11 @@ impl PixelType {
 /// One decoded plane at one resolution, row-major.
 #[non_exhaustive]
 pub enum Plane {
+    /// Samples of a [`PixelType::U8`] scope.
     U8(Vec<u8>),
+    /// Samples of a [`PixelType::U16`] scope.
     U16(Vec<u16>),
+    /// Samples of a [`PixelType::F32`] scope.
     F32(Vec<f32>),
 }
 

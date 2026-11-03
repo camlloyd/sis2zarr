@@ -6,6 +6,7 @@ use crate::reader::{attr, find, num};
 /// One fluorescence channel, as recorded in the header.
 #[derive(Debug, Clone)]
 pub struct ChannelInfo {
+    /// Channel name, or `Channel <n>` (counting from 1) when the file leaves it empty.
     pub name: String,
     /// Display color, from the end of the channel's color transfer function.
     pub color_rgb: [u8; 3],

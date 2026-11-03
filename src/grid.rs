@@ -3,8 +3,10 @@
 use crate::error::{SisError, format_err};
 
 /// Image size, tile size, tile counts and stored resolutions of every channel-plane in a
-/// scope. `TileGrid::new` checks the layout, so a grid always has even tiles that cover
-/// the image and resolutions that halve evenly.
+/// scope.
+///
+/// `TileGrid::new` checks the layout, so a grid always has even tiles that cover the
+/// image and resolutions that halve evenly.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TileGrid {
     width: u64,
