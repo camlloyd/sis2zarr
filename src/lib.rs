@@ -8,6 +8,7 @@
 //!   header and decoded planes.
 //! - [`convert_to_zarr`] — decodes every plane in parallel and writes a multi-resolution
 //!   OME-Zarr v0.4 store in the `bioformats2raw` layout.
+//!   [`convert_to_zarr_with_progress`] does the same and reports each plane written.
 //!
 //! These are not the Olympus SIS TIFF files that Bio-Formats reads: they hold an XML
 //! header, a tile index and 8-bit, 16-bit or float pixel data, raw or gzip-compressed,
@@ -60,6 +61,36 @@ pub use reader::{PixelType, Plane, Scope, SisHeader, SisReader};
 /// layout this crate has not been verified against, and [`SisError::ZarrWrite`] if
 /// writing the output store fails.
 pub fn convert_to_zarr(input: &Path, output: &Path) -> Result<(), SisError> {
+    convert_to_zarr_with_progress(input, output, &|_, _| {})
+}
+
+/// Like [`convert_to_zarr`], but reports progress after each channel-plane is written.
+///
+/// `progress(done, total)` gets the number written so far and the total across every
+/// scope. Planes are written in parallel, so `progress` may be called from several
+/// threads at once.
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::path::Path;
+///
+/// sis2zarr::convert_to_zarr_with_progress(
+///     Path::new("sample.sis"),
+///     Path::new("sample.ome.zarr"),
+///     &|done, total| eprintln!("{done}/{total} planes"),
+/// )?;
+/// # Ok::<(), sis2zarr::SisError>(())
+/// ```
+///
+/// # Errors
+///
+/// The same as [`convert_to_zarr`].
+pub fn convert_to_zarr_with_progress(
+    input: &Path,
+    output: &Path,
+    progress: &(dyn Fn(usize, usize) + Sync),
+) -> Result<(), SisError> {
     // Writing into an earlier store would leave its other image groups behind.
     if output.exists() {
         return Err(SisError::Io(std::io::Error::new(
@@ -68,5 +99,5 @@ pub fn convert_to_zarr(input: &Path, output: &Path) -> Result<(), SisError> {
         )));
     }
     let reader = SisReader::open(input)?;
-    zarr::write_ome_zarr(output, &reader.scopes())
+    zarr::write_ome_zarr(output, &reader.scopes(), progress)
 }

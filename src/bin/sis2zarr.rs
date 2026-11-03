@@ -51,7 +51,18 @@ fn main() -> anyhow::Result<()> {
         args.input.display(),
         args.output.display()
     );
-    sis2zarr::convert_to_zarr(&args.input, &args.output)?;
+    // indicatif draws nothing when stderr is not a terminal, so pipes and logs stay clean.
+    let bar = indicatif::ProgressBar::new(0).with_style(indicatif::ProgressStyle::with_template(
+        "{wide_bar} {pos}/{len} planes  {elapsed_precise} elapsed, ~{eta} left",
+    )?);
+    sis2zarr::convert_to_zarr_with_progress(&args.input, &args.output, &|_, total| {
+        // set_length redraws, so only call it once, or every frame is drawn twice.
+        if bar.length() != Some(total as u64) {
+            bar.set_length(total as u64);
+        }
+        bar.inc(1); // atomic, so out-of-order threads never move the bar backwards
+    })?;
+    bar.finish_and_clear();
     eprintln!("Done.");
     Ok(())
 }

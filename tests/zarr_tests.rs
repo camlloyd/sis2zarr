@@ -39,6 +39,23 @@ fn convert_to_zarr_is_public() {
 }
 
 #[test]
+fn progress_counts_every_plane_of_every_scope() {
+    let dir = tempfile::TempDir::new().unwrap();
+    let input = dir.path().join("in.sis");
+    std::fs::write(&input, common::multi_scope_sis_file(2)).unwrap();
+    let calls = std::sync::Mutex::new(Vec::new());
+    sis2zarr::convert_to_zarr_with_progress(&input, &dir.path().join("out.ome.zarr"), &|d, t| {
+        calls.lock().unwrap().push((d, t))
+    })
+    .unwrap();
+    let mut calls = calls.into_inner().unwrap();
+    calls.sort();
+    let total = calls[0].1;
+    assert!(total > 0);
+    assert_eq!(calls, (1..=total).map(|d| (d, total)).collect::<Vec<_>>());
+}
+
+#[test]
 fn every_tile_index_layout_gives_the_same_pixels() {
     for layout in LAYOUTS {
         let file = build_sis_file(layout, "unsigned short", common::u16_sample, |xml| xml);
