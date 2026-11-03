@@ -1,5 +1,7 @@
 # sis2zarr
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23921335.svg)](https://doi.org/10.5281/zenodo.23921335)
+
 Convert [arivis](https://www.arivis.com) SIS files (`.sis`) to [OME-Zarr](https://ngff.openmicroscopy.org/).
 
 ## Installation
